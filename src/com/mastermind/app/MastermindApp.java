@@ -8,6 +8,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +17,7 @@ public class MastermindApp {
     //initialize scanner to capture input from user
     private final Scanner scanner = new Scanner(System.in);
     private int turn = 0;
+    private String[] secret = null;
     private final String WELCOME = "Welcome to Mastermind can you guess the code????";
     private static final HttpClient client = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
@@ -25,7 +27,7 @@ public class MastermindApp {
     //execute will direct application flow
     public void execute(){
         Thread newThread = new Thread(this::getRandomCode);
-        //create a new thread to fetch the secret number
+        //create a new thread to fetch the secret number and let the program run while it resolves
         newThread.start();
 
         welcome(); 
@@ -44,11 +46,18 @@ public class MastermindApp {
         response = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
         String body = null;
             body = response.thenApply(HttpResponse::body).get(5, TimeUnit.SECONDS);
-            System.out.println(body);
+            parseAndSetSecret(body);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
+    }
+
+    private void parseAndSetSecret(String body) {
+        // take the response body string remove all spaces and set an array
+        // containing string representation of 4 digit secret code
+
+        secret = body.replaceAll("\\s+", "").split("");
     }
 
     private void welcome() {
