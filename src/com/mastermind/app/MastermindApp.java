@@ -17,6 +17,9 @@ public class MastermindApp {
     private final Scanner scanner = new Scanner(System.in);
     private String guess;
     private int turn = 0;
+    private final String HELP = "help";
+    private final String PREVIOUS= "previous";
+
     private String[] secret = null;
     private final String WELCOME = "Welcome to Mastermind can you guess the code????";
     private boolean gameOver = false;
@@ -27,13 +30,13 @@ public class MastermindApp {
 
     //execute will direct application flow
     public void execute(){
-        Thread newThread = new Thread(this::getRandomCode);
+        Thread newThread = new Thread(() -> getRandomCode());
         //create a new thread to fetch the secret number and let the program run while it resolves
         newThread.start();
         welcome();
         do {
         getUserInput();
-            System.out.println(gameOver);
+            System.out.println(turn);
         }while (turn < 9  && !gameOver);
 
 
@@ -43,22 +46,45 @@ public class MastermindApp {
         System.out.println("Enter a 4 digit number and try and guess the code using 0-7");
         //standardize all incoming messages from the user
         guess = scanner.nextLine().toLowerCase();
-        if(isSecretWord(guess)){
-            gameOver = true;
+        if(isValidGuess(guess)){
+            gameOver = isSecretWord(guess);
         }
-        turn++;
 
+    }
+
+    private boolean isValidGuess(String guess) {
+        /*
+         * Method to check input before counting a turn
+         * 1. Strip extra spaces
+         * 2. Check for reserved words to preform an action help for rules and previous for previous guesses
+         * 3. Check if word matches correct length and contain only the correct digits 0-7 then return true to then
+         * evaluate guess and record a turn
+          */
+        guess = guess.replaceAll("\\s+", "");
+        String regex = "[0-7]+";
+        if(HELP.equals(guess)) {
+            //print help mesasage
+            System.out.println("HELP");
+        }else if(PREVIOUS.contains(guess)) {
+            //print history
+            System.out.println("PREVIOUS");
+        }else if (guess.matches(regex) && guess.length()==4){
+            return true;
+        }
+        return false;
     }
 
     private boolean isSecretWord(String guess) {
         String[] guessArray =  guess.split("");
-        for (int i = 0; i < guessArray.length; i++) {
-            if(!guessArray[i].equals(secret[i])){
-                return false;
+        //TODO save previous guesses amd return input
+        turn++;
+        System.out.println(turn);
+            for (int i = 0; i < guessArray.length; i++) {
+                if (!guessArray[i].equals(secret[i])) {
+                    return false;
+                }
             }
-        }
         return true;
-
         }
 
     private void getRandomCode() {
