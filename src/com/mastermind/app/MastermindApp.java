@@ -5,9 +5,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -17,8 +15,10 @@ public class MastermindApp {
     private final Scanner scanner = new Scanner(System.in);
     private String guess;
     private int turn = 0;
+    private final int MAX_GUESSES = 9;
     private final String HELP = "help";
     private final String PREVIOUS= "previous";
+    private Map< String, String> history = new TreeMap<>();
 
     private String[] secret = null;
     private final String WELCOME = "Welcome to Mastermind can you guess the code????";
@@ -33,11 +33,11 @@ public class MastermindApp {
         Thread newThread = new Thread(() -> getRandomCode());
         //create a new thread to fetch the secret number and let the program run while it resolves
         newThread.start();
+
         welcome();
         do {
         getUserInput();
-            System.out.println(turn);
-        }while (turn < 9  && !gameOver);
+        }while (turn < MAX_GUESSES  && !gameOver);
 
 
     }
@@ -67,25 +67,72 @@ public class MastermindApp {
             System.out.println("HELP");
         }else if(PREVIOUS.contains(guess)) {
             //print history
-            System.out.println("PREVIOUS");
+           printHistory();
+        }else if(guess.contains("mirkovic")) {
+            System.out.println(Arrays.toString(secret));
         }else if (guess.matches(regex) && guess.length()==4){
             return true;
         }
         return false;
     }
 
+    private void printHistory() {
+        int lineNum=1;
+        for( Map.Entry<String, String> entry : history.entrySet() ){
+            System.out.println( "Guess "+ lineNum +" - " + entry.getKey() + " was " + entry.getValue() );
+            lineNum++;
+        }
+    }
+
     private boolean isSecretWord(String guess) {
-        String[] guessArray =  guess.split("");
-        //TODO save previous guesses amd return input
+        String[] guessArray = guess.split("");
         turn++;
-        System.out.println(turn);
-            for (int i = 0; i < guessArray.length; i++) {
-                if (!guessArray[i].equals(secret[i])) {
-                    return false;
+
+        // TODO: Save previous guesses and return input
+
+        String[] temp = Arrays.copyOf(secret, 4);
+        String computerResponse;
+
+        int correctPosition = 0;
+        int exists = 0;
+
+        // Check for correct positions
+        for (int i = 0; i < guess.length(); i++) {
+            if (guessArray[i].equals(temp[i])) {
+                correctPosition++;
+                guessArray[i] = "@";
+                temp[i] = "@";
+            }
+        }
+
+        // Check for correct numbers
+        for (String s : guessArray) {
+            if (s.equals("@")) {
+                exists++;
+            } else {
+                for (int secretWord = 0; secretWord < 4; secretWord++) {
+                    if (s.equals(temp[secretWord])) {
+                        exists++;
+                        temp[secretWord] = "@";
+                        break;
+                    }
                 }
             }
-        return true;
         }
+
+        // Generate response message
+        if (correctPosition == 0 && exists == 0) {
+            computerResponse = "All incorrect";
+        } else {
+            computerResponse = exists + " correct numbers and " + correctPosition + " correct locations";
+        }
+
+        // Save guess and response to history
+        history.put(guess, computerResponse);
+
+        System.out.println(computerResponse);
+        return correctPosition == 4;
+    }
 
     private void getRandomCode() {
         //TODO more effective error catching may chaining and priniting based on failure
@@ -99,8 +146,9 @@ public class MastermindApp {
         response = client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
         String body = null;
             body = response.thenApply(HttpResponse::body).get(5, TimeUnit.SECONDS);
-            parseAndSetSecret(body);
-            System.out.println(Arrays.toString(secret));
+            parseAndSetSecret("1515");
+            //testing sout for secret word exposure
+            //System.out.println(Arrays.toString(secret));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -110,7 +158,6 @@ public class MastermindApp {
     private void parseAndSetSecret(String body) {
         // take the response body string remove all spaces and set an array
         // containing string representation of 4 digit secret code
-
         secret = body.replaceAll("\\s+", "").split("");
     }
 
